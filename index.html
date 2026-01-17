@@ -168,6 +168,10 @@ button:disabled{ opacity:0.6; }
   <div class="row"><span>📅 תקציב חודשי</span><span id="budget">0 ₪</span></div>
   <div class="row"><span>📊 נשאר בתקציב</span><span id="budgetLeft">0 ₪</span></div>
   <div class="row"><span>💰 הכנסה</span><span id="income">0 ₪</span></div>
+  <div class="row"><span>💳 חיוב האשראי ב22 לחודש בעוד</span><span id="daysTo22">—</span></div>
+ <span class="row">📆 (28/לחודש)-בעוד
+  <span id="daysTo28">—</span>
+   </span>
 </div>
 
 <div class="card" id="setupCard">
@@ -179,6 +183,8 @@ button:disabled{ opacity:0.6; }
 
 <div class="card" id="buyCard" style="display:none;">
   <h2>קנייה חדשה</h2>
+  <div class="row">
+</div>
   <input id="buyInput" type="number" placeholder="סכום קנייה ₪">
   <button onclick="addPurchase()">הוסף קנייה</button>
 </div>
@@ -225,14 +231,72 @@ function load(){
     document.getElementById("buyCard").style.display="block";
   }
 
-  checkMonthlySalary();   // ← חשוב!!!
-  render();
+  checkMonthlySalary(); 
+updateDaysTo28();
+updateDaysTo22();   // ← חדש
+render();
 }
 
 function save(){
   localStorage.setItem("bankApp", JSON.stringify(data));
 }
 
+  function updateDaysTo28(){
+  const now = new Date();
+
+  let target = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    28, 0, 0, 0, 0
+  );
+
+  // אם עברנו את ה-28, הולכים ל-28 של החודש הבא
+  if(now > target){
+    target = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      28, 0, 0, 0, 0
+    );
+  }
+
+  const diffMs = target - now;
+  const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  if(days === 0){
+    document.getElementById("daysTo28").innerText = "היום 🎉";
+  }else{
+    document.getElementById("daysTo28").innerText = days + " ימים";
+  }
+}
+  
+  function updateDaysTo22(){
+  const now = new Date();
+
+  let target = new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    22, 0, 0, 0, 0
+  );
+
+  // אם עברנו את ה-22, הולכים ל-22 של החודש הבא
+  if(now > target){
+    target = new Date(
+      now.getFullYear(),
+      now.getMonth() + 1,
+      22, 0, 0, 0, 0
+    );
+  }
+
+  const diffMs = target - now;
+  const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+
+  if(days === 0){
+    document.getElementById("daysTo22").innerText = "היום 💳";
+  }else{
+    document.getElementById("daysTo22").innerText = days + " ימים";
+  }
+}
+  
 function render(){
   balance.innerText = data.balance + " ₪";
   income.innerText = data.income + " ₪";
@@ -274,6 +338,7 @@ function saveSetup(){
   setupCard.style.display="none";
   buyCard.style.display="block";
   render();
+  updateDaysTo28();
 }
 
 
