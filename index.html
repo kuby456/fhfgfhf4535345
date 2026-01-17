@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>מעקב הוצאות</title>
+
+<style>
+:root{
+  --bg: #f3f5f9;
+  --card-bg: #ffffff;
+  --muted: #6b7280;
+  --accent: #4caf50;
+  --radius: 14px;
+  --container-padding: 14px;
+  --stat-font: 17px;
+}
+
+/* בסיסי */
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  font-family: system-ui, Arial, sans-serif;
+  background: linear-gradient(180deg,#f6f8fc,#eef2f7);
+  margin:0;
+  padding: var(--container-padding);
+  direction: rtl;
+  color: #0f172a;
+}
+
+/* כרטיסים */
+.card{
+  background: var(--card-bg);
+  border-radius: var(--radius);
+  padding:14px 14px 12px;
+  margin-bottom:14px;
+  box-shadow: 0 8px 24px rgba(15,23,42,0.06);
+}
+
+/* כותרות */
+h2{
+  margin:4px 0 10px;
+  font-size:18px;
+  font-weight:700;
+}
+
+/* שורות נתונים */
+.row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin:6px 0;
+  font-size: var(--stat-font);
+}
+
+/* ערכים */
+.row > span:last-child{
+  min-width:110px;
+  text-align:center;
+  font-weight:700;
+}
+
+/* ===== תקציב ===== */
+
+#budgetLeft{
+  display:inline-block;
+  min-width:120px;
+  font-weight:800;
+  font-size:20px;
+  padding:8px 12px;
+  border-radius:999px;
+  color:#fff;
+
+  --percent: 100%;
+  --budget-color: #22c55e;
+
+  background:
+    linear-gradient(90deg,
+      var(--budget-color) 0%,
+      var(--budget-color) var(--percent),
+      rgba(255,255,255,0.15) var(--percent),
+      rgba(255,255,255,0.05) 100%);
+
+  box-shadow: 0 6px 16px rgba(0,0,0,0.12);
+  transition: all .25s ease;
+  white-space:nowrap;
+}
+
+#budgetLeft.positive{ --budget-color: #22c55e; }
+#budgetLeft.warning{  --budget-color: #f59e0b; }
+#budgetLeft.danger{
+  --budget-color: #ef4444;
+  animation: pulse 1.1s infinite;
+}
+
+@keyframes pulse{
+  0%{ transform: scale(1); }
+  50%{ transform: scale(1.03); }
+  100%{ transform: scale(1); }
+}
+
+/* ===== טפסים ===== */
+
+input, button{
+  width:100%;
+  padding:10px;
+  font-size:17px;
+  margin-top:8px;
+  border-radius:10px;
+  border:1px solid #e5e7eb;
+  background:#fff;
+  color:#0f172a;
+}
+
+input:focus{
+  outline:none;
+  border-color:#60a5fa;
+  box-shadow:0 0 0 2px rgba(96,165,250,0.2);
+}
+
+button{
+  background: linear-gradient(180deg,#4caf50,#3f9e47);
+  color:white;
+  border:none;
+  cursor:pointer;
+  font-weight:700;
+}
+
+button:active{ transform: translateY(1px); }
+button:disabled{ opacity:0.6; }
+
+/* ===== רשימת קניות ===== */
+
+.list-item{
+  padding:10px 4px;
+  border-bottom:1px solid #f1f5f9;
+  font-size:15px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+
+.list-item::before{
+  content: "";
+  width:8px;
+  height:8px;
+  border-radius:50%;
+  background:#3b82f6;
+  margin-inline-start:10px;
+}
+
+/* מובייל */
+@media (max-width:420px){
+  body{ padding:12px; }
+  .row{ font-size:15px; }
+  #budgetLeft{ font-size:18px; }
+}
+
+</style>
+</head>
+
+<body>
+
+<div class="card" id="statsCard">
+  <h2>נתונים</h2>
+  <div class="row"><span>💳 מאזן בנק</span><span id="balance">0 ₪</span></div>
+  <div class="row"><span>📅 תקציב חודשי</span><span id="budget">0 ₪</span></div>
+  <div class="row"><span>📊 נשאר בתקציב</span><span id="budgetLeft">0 ₪</span></div>
+  <div class="row"><span>💰 הכנסה</span><span id="income">0 ₪</span></div>
+</div>
+
+<div class="card" id="setupCard">
+  <h2>הגדרה ראשונית</h2>
+  <input id="incomeInput" type="number" placeholder="הכנסה חודשית ₪">
+  <input id="budgetInput" type="number" placeholder="תקציב חודשי ₪">
+  <button onclick="saveSetup()">שמור</button>
+</div>
+
+<div class="card" id="buyCard" style="display:none;">
+  <h2>קנייה חדשה</h2>
+  <input id="buyInput" type="number" placeholder="סכום קנייה ₪">
+  <button onclick="addPurchase()">הוסף קנייה</button>
+</div>
+
+<div class="card">
+  <h2>רשימת קניות</h2>
+  <div id="list"></div>
+</div>
+
+<script>
+let data = {
+  balance: 0,
+  income: 0,
+  budget: 0,        // התקציב החודשי הקבוע (1500 למשל)
+  budgetLeft: 0,    // כמה נשאר בפועל
+  lastSalaryMonth: null,
+  purchases: []
+};
+
+
+function checkMonthlySalary(){
+  const now = new Date();
+  const day = now.getDate();
+  const monthKey = now.getFullYear() + "-" + (now.getMonth()+1);
+
+  if(day >= 28 && data.lastSalaryMonth !== monthKey){
+    // משכורת נכנסת לבנק
+    data.balance += data.income;
+
+    // התקציב מתווסף למה שנשאר / מינוס
+    data.budgetLeft += data.budget;
+
+    data.lastSalaryMonth = monthKey;
+    save();
+  }
+}
+
+
+function load(){
+  const saved = localStorage.getItem("bankApp");
+  if(saved){
+    data = JSON.parse(saved);
+    document.getElementById("setupCard").style.display="none";
+    document.getElementById("buyCard").style.display="block";
+  }
+
+  checkMonthlySalary();   // ← חשוב!!!
+  render();
+}
+
+function save(){
+  localStorage.setItem("bankApp", JSON.stringify(data));
+}
+
+function render(){
+  balance.innerText = data.balance + " ₪";
+  income.innerText = data.income + " ₪";
+  budget.innerText = data.budget + " ₪";
+  budgetLeft.innerText = data.budgetLeft + " ₪";
+
+  const listDiv = document.getElementById("list");
+  listDiv.innerHTML="";
+  data.purchases.forEach((p,i)=>{
+    const d = new Date(p.time);
+    const line = document.createElement("div");
+    line.className="list-item";
+    line.innerText = 
+      (i+1)+". ₪"+p.amount+
+      " — "+d.toLocaleDateString()+" "+
+      d.toLocaleTimeString().slice(0,5);
+    listDiv.appendChild(line);
+  });
+}
+
+function saveSetup(){
+  const inc = Number(incomeInput.value);
+  const bud = Number(budgetInput.value);
+  if(!inc || !bud) return alert("מלא הכנסה ותקציב");
+
+  const now = new Date();
+  const monthKey = now.getFullYear() + "-" + (now.getMonth()+1);
+
+  data.income = inc;     // משכורת חודשית קבועה
+  data.budget = bud;    // תוספת תקציב חודשית קבועה
+
+  data.balance += inc;      // משכורת ראשונה נכנסת מיד
+  data.budgetLeft += bud;  // תקציב ראשון נכנס מיד
+
+  data.lastSalaryMonth = monthKey; // מסמן שקיבלת החודש
+
+  save();
+
+  setupCard.style.display="none";
+  buyCard.style.display="block";
+  render();
+}
+
+
+function addPurchase(){
+  const val = Number(buyInput.value);
+  if(!val) return;
+
+  data.balance -= val;
+  data.budgetLeft -= val;
+
+  data.purchases.push({
+    amount: val,
+    time: Date.now()
+  });
+
+  buyInput.value="";
+  save();
+  render();
+}
+
+load();
+</script>
+
+</body>
+</html>
