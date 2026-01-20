@@ -111,6 +111,7 @@ input, button{
   border:1px solid #e5e7eb;
   background:#fff;
   color:#0f172a;
+ margin: 0 auto ;
 }
 
 input:focus{
@@ -156,7 +157,127 @@ button:disabled{ opacity:0.6; }
   .row{ font-size:15px; }
   #budgetLeft{ font-size:18px; }
 }
+.buy-left{
+  display:flex;
+  flex-direction:column;
+  gap:2px;
+}
 
+.buy-name{
+  font-weight:700;
+  font-size:15px;
+  color:#0f172a;
+}
+
+.buy-time{
+  font-size:13px;
+  font-weight:600;
+  color:#1e40af;
+  background: linear-gradient(135deg,#dbeafe,#eff6ff);
+  padding:4px 10px;
+  border-radius:999px;
+  border:1px solid #bfdbfe;
+  display:inline-block;
+  width:fit-content;
+}
+
+.buy-amount{
+  font-weight:800;
+  font-size:16px;
+  color:#0f172a;
+}
+/* ===== אינפוטים – שם מוצר + סכום ===== */
+
+#nameInput,
+#buyInput{
+  border:2px solid #bfdbfe;
+  background:#f8fbff;
+  font-weight:600;
+  transition: all .2s ease;
+}
+
+/* כשהאינפוט בפוקוס */
+#nameInput:focus,
+#buyInput:focus{
+  border-color:#3b82f6;
+  background:#f0f7ff;
+  box-shadow:0 0 0 3px rgba(59,130,246,0.25);
+}
+
+/* placeholder בצבע שונה */
+#nameInput::placeholder,
+#buyInput::placeholder{
+  color:#64748b;
+  font-weight:500;
+}
+ 
+ .side-by-side{
+  display:flex;
+  gap:5px;
+  align-items:flex-start;
+}
+
+/* כרטיס קנייה – צר */
+.small-card{
+  flex: 0 0 18%;
+}
+
+/* רשימת קניות – רחב */
+.big-card{
+  flex: 1;
+}
+
+/* במובייל קטן – חוזרים לטור */
+ .small-card{
+  flex: 0 0 50%;
+  position: sticky;
+  top: 12px;
+}
+ .overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.35);
+  display:none;
+  align-items:flex-end;
+  justify-content:center;
+  z-index:1000;
+}
+
+.modal{
+  background:#fff;
+  width:100%;
+  max-width:420px;
+  border-radius:18px 18px 0 0;
+  padding:16px;
+  box-shadow:0 -10px 30px rgba(0,0,0,0.2);
+  animation: slideUp .25s ease;
+}
+
+.modal h3{
+  margin:0 0 10px;
+  text-align:center;
+}
+
+@keyframes slideUp{
+  from{ transform:translateY(100%); }
+  to{ transform:translateY(0); }
+}
+ 
+ #setupCard{
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+.ff1{
+  display: flex;
+  justify-content: center; /* מרכז אופקית */
+  align-items: center;     /* מרכז אנכית (אם יש גובה) */
+}
+ .dd1{
+  width: 50%;
+  height: auto;
+  padding: 7px;
+ }
 </style>
 </head>
 
@@ -169,9 +290,10 @@ button:disabled{ opacity:0.6; }
   <div class="row"><span>📊 נשאר בתקציב</span><span id="budgetLeft">0 ₪</span></div>
   <div class="row"><span>💰 הכנסה</span><span id="income">0 ₪</span></div>
   <div class="row"><span>💳 חיוב האשראי ב22 לחודש בעוד</span><span id="daysTo22">—</span></div>
- <span class="row">📆 (28/לחודש)-בעוד
+ <div class="row">
+  <span>📆 (28/לחודש)-בעוד</span>
   <span id="daysTo28">—</span>
-   </span>
+</div>
 </div>
 
 <div class="card" id="setupCard">
@@ -181,19 +303,39 @@ button:disabled{ opacity:0.6; }
   <button onclick="saveSetup()">שמור</button>
 </div>
 
-<div class="card" id="buyCard" style="display:none;">
-  <h2>קנייה חדשה</h2>
-  <div class="row">
+
+  <div class="card small-card" id="buyCard" style="display:none;">
+    <h2 style="color:#60a5fa;">קנייה חדשה</h2>
+
+     <div class="card big-card">
+       <div class="ff1"><button class="dd1" onclick="startBuy()">הוסף קנייה</button>
 </div>
-  <input id="buyInput" type="number" placeholder="סכום קנייה ₪">
-  <button onclick="addPurchase()">הוסף קנייה</button>
+    <h2>רשימת קניות</h2>
+    <div id="list"></div>
+  </div>
+
+<!-- ===== באנר סכום ===== -->
+<div class="overlay" id="amountModal">
+  <div class="modal">
+    <h3>סכום קנייה</h3>
+    <input id="buyInput" type="number" placeholder="סכום קנייה ₪">
+    <br><br>
+
+    <div style="display:flex; gap:8px;">
+       <button style="flex:2;" onclick="confirmAmount()">אישור</button>
+     <button style="flex:1; background:#fee2e2; color:#b91c1c; border:1px solid #fecaca;" onclick="cancelBuy()">ביטול</button> </div>
+  </div>
 </div>
 
-<div class="card">
-  <h2>רשימת קניות</h2>
-  <div id="list"></div>
+<!-- ===== באנר טקסט ===== -->
+<div class="overlay" id="nameModal">
+  <div class="modal">
+    <h3>פרטים (אופציונאלי)</h3>
+    <input id="nameInput" type="text" placeholder="טקסט חופשי לכל קנייה (אופציונאלי)">
+   <br><br>
+    <button onclick="confirmName()">הוספה לרשימה</button>
+  </div>
 </div>
-
 <script>
 let data = {
   balance: 0,
@@ -203,7 +345,44 @@ let data = {
   lastSalaryMonth: null,
   purchases: []
 };
+let tempAmount = null;
+ 
+ function startBuy(){
+  amountModal.style.display = "flex";
+  buyInput.value = "";
+  buyInput.focus();
+}
 
+function confirmAmount(){
+  const val = Number(buyInput.value);
+  if(!val) return;
+
+  tempAmount = val;
+  amountModal.style.display = "none";
+
+  nameModal.style.display = "flex";
+  nameInput.value = "";
+  nameInput.focus();
+}
+
+function confirmName(){
+  const name = nameInput.value.trim() || "קנייה";
+
+  data.balance -= tempAmount;
+  data.budgetLeft -= tempAmount;
+
+  data.purchases.unshift({
+    amount: tempAmount,
+    name: name,
+    time: Date.now()
+  });
+
+  tempAmount = null;
+  nameModal.style.display = "none";
+
+  save();
+  render();
+}
 
 function checkMonthlySalary(){
   const now = new Date();
@@ -298,21 +477,40 @@ function save(){
 }
   
 function render(){
-  balance.innerText = data.balance + " ₪";
-  income.innerText = data.income + " ₪";
-  budget.innerText = data.budget + " ₪";
-  budgetLeft.innerText = data.budgetLeft + " ₪";
 
+  const balanceEl = document.getElementById("balance");
+  const incomeEl = document.getElementById("income");
+  const budgetEl = document.getElementById("budget");
+  const budgetLeftEl = document.getElementById("budgetLeft");
+
+  balanceEl.innerText = data.balance + " ₪";
+  incomeEl.innerText = data.income + " ₪";
+  budgetEl.innerText = data.budget + " ₪";
+  budgetLeftEl.innerText = data.budgetLeft + " ₪";
   const listDiv = document.getElementById("list");
-  listDiv.innerHTML="";
-  data.purchases.forEach((p,i)=>{
+  listDiv.innerHTML = "";
+
+  data.purchases.forEach((p, i) => {
     const d = new Date(p.time);
+
+    const dateStr = d.toLocaleDateString("he-IL");
+    const timeStr = d.toLocaleTimeString("he-IL", {
+      hour: "2-digit",
+      minute: "2-digit"
+    });
+
     const line = document.createElement("div");
-    line.className="list-item";
-    line.innerText = 
-      (i+1)+". ₪"+p.amount+
-      " — "+d.toLocaleDateString()+" "+
-      d.toLocaleTimeString().slice(0,5);
+    line.className = "list-item";
+
+    line.innerHTML = `
+  <div class="buy-left">
+    <span class="buy-name">${p.name || "קנייה"}</span>
+    <span class="buy-time">${dateStr} · ${timeStr}</span>
+  </div>
+
+  <span class="buy-amount">₪${p.amount}</span>
+`;
+
     listDiv.appendChild(line);
   });
 }
@@ -340,25 +538,11 @@ function saveSetup(){
   render();
   updateDaysTo28();
 }
-
-
-function addPurchase(){
-  const val = Number(buyInput.value);
-  if(!val) return;
-
-  data.balance -= val;
-  data.budgetLeft -= val;
-
-  data.purchases.push({
-    amount: val,
-    time: Date.now()
-  });
-
-  buyInput.value="";
-  save();
-  render();
+function cancelBuy(){
+  tempAmount = null;
+  amountModal.style.display = "none";
+  nameModal.style.display = "none";
 }
-
 load();
 </script>
 
