@@ -289,7 +289,8 @@ button:disabled{ opacity:0.6; }
   <div class="row"><span>📅 תקציב חודשי</span><span id="budget">0 ₪</span></div>
   <div class="row"><span>📊 נשאר בתקציב</span><span id="budgetLeft">0 ₪</span></div>
   <div class="row"><span>💰 הכנסה</span><span id="income">0 ₪</span></div>
-  <div class="row"><span>💳 חיוב האשראי ב22 לחודש בעוד</span><span id="daysTo22">—</span></div>
+  <div class="row"><span>💳 חיוב האשראי ב־2 לחודש בעוד</span>
+<span id="daysTo2">—</span></div>
  <div class="row">
   <span>📆 (28/לחודש)-בעוד</span>
   <span id="daysTo28">—</span>
@@ -336,6 +337,8 @@ button:disabled{ opacity:0.6; }
     <button onclick="confirmName()">הוספה לרשימה</button>
   </div>
 </div>
+    
+    
 <script>
 let data = {
   balance: 0,
@@ -412,7 +415,7 @@ function load(){
 
   checkMonthlySalary(); 
 updateDaysTo28();
-updateDaysTo22();   // ← חדש
+updateDaysTo2();   // ← חדש
 render();
 }
 
@@ -448,33 +451,33 @@ function save(){
   }
 }
   
-  function updateDaysTo22(){
+  function updateDaysTo2(){
   const now = new Date();
 
   let target = new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    22, 0, 0, 0, 0
-  );
+  now.getFullYear(),
+  now.getMonth(),
+  2, 0, 0, 0, 0
+);
 
   // אם עברנו את ה-22, הולכים ל-22 של החודש הבא
   if(now > target){
-    target = new Date(
-      now.getFullYear(),
-      now.getMonth() + 1,
-      22, 0, 0, 0, 0
-    );
-  }
+  target = new Date(
+    now.getFullYear(),
+    now.getMonth() + 1,
+    2, 0, 0, 0, 0
+  );
+}
 
   const diffMs = target - now;
   const days = Math.ceil(diffMs / (1000 * 60 * 60 * 24));
 
   if(days === 0){
-    document.getElementById("daysTo22").innerText = "היום 💳";
-  }else{
-    document.getElementById("daysTo22").innerText = days + " ימים";
-  }
+  document.getElementById("daysTo2").innerText = "היום 💳";
+}else{
+  document.getElementById("daysTo2").innerText = days + " ימים";
 }
+    }
   
 function render(){
 
